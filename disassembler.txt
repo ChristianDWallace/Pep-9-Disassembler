@@ -1,0 +1,494 @@
+;Christian wallace
+;Dr. Macpherson
+;11/15/2017
+;Problem Description: Create a disassembler that turns HEX code into PEP9 ASSEMBLY code. 
+;Problem implementation: For this problem I essentially use a ton of if then statements as well as pass by reference variables to operate on the two local variables of the 
+;input class. There are a ton of rules I implemented which adhere to the rules of the PEP/9 language. 
+
+BR                           main
+                             ;register(*reg)
+reg:                         .EQUATE              0                               ;local parameter stack deferred #2h
+register:                    LDBA                 2,sf                            ;get the register value
+                             CPBA                 7,i                             ;if we are less than 7 then our addressing mode is i which is 1
+                             BRGT                 dir                             ;else we are dir which is 2
+                             LDBA                 1,i                             ;load 1
+                             STBA                 2,sf                            ;store in the reg value
+                             BR                   doneReg                         ;then we return
+dir:                         LDBA                 2,i                             ;we get 2 as our reg value
+                             STBA                 2,sf                            ;store it in our reg area
+doneReg:                     RET                                                  ;then we return. 
+
+                             ;address(*addre, *regist)
+regist:                      .EQUATE              2                               ;local parameter stack deferred #2h
+addre:                       .EQUATE              0                               ;local parameter stack deferred #2h
+address:                     LDBA                 4,sf                            ;get the reg addre value
+                             CPBA                 7,i                             ;if we are less than 7 we just use our value
+                             BRGT                 math                            ;else we have to subtract 8
+                             STBA                 2,sf                            ;otherwise we store our value in the address value
+                             BR                   doneAddr                        ;and move on
+math:                        SUBA                 8,i                             ;subtract 8 from our value
+                             STBA                 2,sf                            ;stuff it in our address
+doneAddr:                    RET
+
+                             ;characterChecker()
+charCh:                      STRO                 msg2,d                          ;Tell the user how to quit the program
+                             LDBA                 0xFC15,d                        ;take user input
+                             CPBA                 81,i                            ;if the user input equals 'Q' then quit program
+                             BRNE                 q                               ;else test for 'q'
+                             STOP
+q:                           CPBA                 113,i                           ;if user input equals 'q' then quit program
+                             BRNE                 clear                           ;else clear the terminal buffer
+                             STOP
+clear:                       CPBA                 10,i                            ;if user input equals line feed
+                             BREQ                 doneCh                          ;then return and begin running program 
+                             LDBA                 0xFC15,d                        ;else get next user input value
+                             BR                   clear                           ;and check it again. 
+doneCh:                      RET                                                  ;return to main
+
+                             ;Dissasembler(* addr, * regi)
+addr:                        .EQUATE              2                               ;formal parameter stack deferred #2h
+regi:                        .EQUATE              0                               ;formal parameter stack deferred #2h 
+dis:                         LDBA                 4,sf                            ;get the address value
+                             CPBA                 0,i                             ;compare it to 0
+                             BRNE                 breqT                           ;if it isn't zero try BREQ
+                             LDBA                 2,sf                            ;get the value in reg
+                             CPBA                 0,i                             ;test it against zero
+                             BRNE                 not1                            ;if it isn't stop see if it is notA
+                             STRO                 stopmsg,d                       ;else it is STOP and we print it out
+                             LDBA                 8,i                             ;load our empty value
+                             STBA                 4,sf                            ;if addressing is 8 we know we have a Unary
+                             BR                   doneDis
+not1:                        CPBA                 6,i                             ;otherwise compare it to NOTA
+                             BRNE                 not2                            ;if it is not NOTA try NOTB
+                             STRO                 notAmsg,d                        ;output the message
+                             LDBA                 8,i                             ;load our empty value
+                             STBA                 4,sf                            ;if addressing is 8 we know we have a Unary
+                             BR                   doneDis         
+not2:                        CPBA                 7,i                             ;compare to NOTX
+                             BRNE                 brokeDis                        ;if it isn't one of those options then it is broken
+                             STRO                 notXmsg,d                       ;else output our message
+                             LDBA                 8,i                             ;load our empty value
+                             STBA                 4,sf                            ;if addressing is 8 we know we have a Unary
+                             BR                   doneDis
+breqT:                       CPBA                 1,i                             ;Test to see if we are at BREQ
+                             BRNE                 callT                           ;If we are not at BREQ see if we are at CALL
+                             STRO                 breqmsg,d                       ;output BREQ
+                             LDBA                 2,sf                            ;else get our reg value
+                             CPBA                 8,i                             ;check to see if we are BREQ i
+                             BRNE                 breqTd                          ;else check to see if our addressing mode is d
+                             LDBA                 0,i                             ;we are using 0 to represent addressing mode i
+                             STBA                 4,sf                            ;store that in our address value
+                             LDBA                 0,i
+                             STBA                 2,sf
+                             BR                   doneDis                     
+breqTd:                      CPBA                 9,i                             ;else check if we are addressing mode d 
+                             BRNE                 brokeDis                        ;if we aren't this option then we are broken
+                             LDBA                 5,i                             ;else we load 1 for direct addressing
+                             STBA                 4,sf                            ;and we store it in our addressing field
+                             LDBA                 0,i
+                             STBA                 2,sf
+                             BR                   doneDis                         ;then we consider ourselves done. 
+callT:                       CPBA                 2,i                             ;compare ourselves to CALL
+                             BRNE                 deciT                           ;if we aren't CALL try DECI
+                             STRO                 callmsg,d                         ;else output CALL 
+                             LDBA                 2,sf                            ;load the value that is in the reg parameter
+                             CPBA                 4,i                             ;check to see if we are CALL i
+                             BRNE                 callTd                          ;else check to see if our addressing mode is d
+                             LDBA                 0,i                             ;we are using 0 to represent addressing mode i
+                             STBA                 4,sf                            ;store that in our address value
+                             LDBA                 0,i
+                             STBA                 2,sf
+                             BR                   doneDis                     
+callTd:                      CPBA                 5,i                             ;else check if we are addressing mode d
+                             BRNE                 brokeDis                        ;if we aren't this option then we are broken
+                             LDBA                 5,i                             ;else we load 1 for direct addressing
+                             STBA                 4,sf                            ;and we store it in our addressing field
+                             LDBA                 0,i
+                             STBA                 2,sf
+                             BR                   doneDis                         ;then we consider ourselves done. 
+deciT:                       CPBA                 3,i                             ;check to see if we are working with DECI
+                             BRNE                 hexoT                           ;if not try HEXO
+                             STRO                 decimsg,d                         ;else output DECI
+                             MOVSPA                                               ;now we calculate our address and reg values
+                             ADDA                 6,i                             ;make sure we are pointing at the right value
+                             SUBSP                2,i                             ;push #addre
+                             STWA                 0,s                             ;put the value in its place
+                             LDWA                 0,i                             ;clear accumulator 
+                             MOVSPA                                               ;now we calculate our address and reg values
+                             ADDA                 9,i                             ;make sure we are pointing at the right value
+                             SUBSP                2,i                             ;push #regist
+                             STWA                 0,s                             ;put the value in its place
+                             LDWA                 0,i                             ;clear accumulator 
+                             CALL                 address                         ;get the address value
+                             ADDSP                4,i                             ;pop the #regist #addre 
+                             LDBA                 4,sf                            ;get the new value
+                             CPBA                 0,i                             ;we can't have a 0 value as our DECI address
+                             BREQ                 brokeDis                        ;so our code is invalid
+                             MOVSPA                                               ;prep to get the register value
+                             ADDA                 6,i                             ;get the address we will be using
+                             SUBSP                2,i                             ;push #reg
+                             STWA                 0,s                             ;store our new address on the stack
+                             LDWA                 0,i                             ;clear the accumulator
+                             CALL                 register                        ;call our register function to get our register
+                             ADDSP                2,i                             ;pop #reg
+                             LDBA                 2,sf                             ;get our reg value
+                             CPBA                 2,i                             ;compare it to 2 (X)
+                             BREQ                 brokeDis                        ;if we are trying to access the x register our code is broken
+                             LDBA                 0,i                             ;else we load 0
+                             STBA                 2,sf                            ;and we set it into our reg value
+                             BR                   doneDis                         ;then we return. 
+hexoT:                       CPBA                 4,i                             ;check to see if we are working with HEXO
+                             BRNE                 addspT                          ;if not try ADDSP
+                             STRO                 hexomsg,d                         ;else output HEXO
+                             MOVSPA                                               ;now we calculate our address and reg values
+                             ADDA                 6,i                             ;make sure we are pointing at the right value
+                             SUBSP                2,i                             ;push #addre
+                             STWA                 0,s                             ;put the value in its place
+                             LDWA                 0,i                             ;clear accumulator 
+                             MOVSPA                                               ;now we calculate our address and reg values
+                             ADDA                 9,i                             ;make sure we are pointing at the right value
+                             SUBSP                2,i                             ;push #regist
+                             STWA                 0,s                             ;put the value in its place
+                             LDWA                 0,i                             ;clear accumulator 
+                             CALL                 address                         ;get the address value
+                             ADDSP                4,i                             ;pop the #regist #addre
+                             MOVSPA                                               ;prep to get the register value
+                             ADDA                 6,i                             ;get the address we will be using
+                             SUBSP                2,i                             ;push #reg
+                             STWA                 0,s                             ;store our new address on the stack
+                             LDWA                 0,i                             ;clear the accumulator
+                             CALL                 register                        ;call our register function to get our register
+                             ADDSP                2,i                             ;pop #reg
+                             LDBA                 2,sf                             ;get our reg value
+                             CPBA                 2,i                             ;compare it to 2 (X)
+                             BREQ                 brokeDis                        ;if we are trying to access the x register our code is broken
+                             LDBA                 0,i                             ;else we load 0
+                             STBA                 2,sf                            ;and we set it into our reg value
+                             BR                   doneDis                         ;then we return. 
+addspT:                      CPBA                 5,i                             ;check to see if we are working with ADDSP
+                             BRNE                 subT                            ;if not try SUB
+                             STRO                 addspmsg,d                        ;else output ADDSP
+                             MOVSPA                                               ;now we calculate our address and reg values
+                             ADDA                 6,i                             ;make sure we are pointing at the right value
+                             SUBSP                2,i                             ;push #addre
+                             STWA                 0,s                             ;put the value in its place
+                             LDWA                 0,i                             ;clear accumulator 
+                             MOVSPA                                               ;now we calculate our address and reg values
+                             ADDA                 9,i                             ;make sure we are pointing at the right value
+                             SUBSP                2,i                             ;push #regist
+                             STWA                 0,s                             ;put the value in its place
+                             LDWA                 0,i                             ;clear accumulator 
+                             CALL                 address                         ;get the address value
+                             ADDSP                4,i                             ;pop the #regist #addre
+                             MOVSPA                                               ;prep to get the register value
+                             ADDA                 6,i                             ;get the address we will be using
+                             SUBSP                2,i                             ;push #reg
+                             STWA                 0,s                             ;store our new address on the stack
+                             LDWA                 0,i                             ;clear the accumulator
+                             CALL                 register                        ;call our register function to get our register
+                             ADDSP                2,i                             ;pop #reg
+                             LDBA                 2,sf                             ;get our reg value
+                             CPBA                 2,i                             ;compare it to 2 (X)
+                             BREQ                 brokeDis                        ;if we are trying to access the x register our code is broken
+                             LDBA                 0,i                             ;else we load 0
+                             STBA                 2,sf                            ;and we set it into our reg value
+                             BR                   doneDis                         ;then we return.
+ subT:                       CPBA                 7,i                             ;compare our value to SUB
+                             BRNE                 ldwT                            ;if we aren't SUB try LDW
+                             STRO                 submsg,d                          ;else output SUB
+                             MOVSPA                                               ;now we calculate our address and reg values
+                             ADDA                 6,i                             ;make sure we are pointing at the right value
+                             SUBSP                2,i                             ;push #addre
+                             STWA                 0,s                             ;put the value in its place
+                             LDWA                 0,i                             ;clear accumulator 
+                             MOVSPA                                               ;now we calculate our address and reg values
+                             ADDA                 9,i                             ;make sure we are pointing at the right value
+                             SUBSP                2,i                             ;push #regist
+                             STWA                 0,s                             ;put the value in its place
+                             LDWA                 0,i                             ;clear accumulator
+                             CALL                 address                         ;get the address value
+                             ADDSP                4,i                             ;pop the #regist #addre
+                             MOVSPA                                               ;prep to get the register value
+                             ADDA                 6,i                             ;get the address we will be using
+                             SUBSP                2,i                             ;push #reg
+                             STWA                 0,s                             ;store our new address on the stack
+                             LDWA                 0,i                             ;clear the accumulator
+                             CALL                 register                        ;call our register function to get our register
+                             ADDSP                2,i                             ;pop #reg
+                             BR                   doneDis                         ;then we return.
+ldwT:                        CPBA                 12,i                            ;compare our value to LDW
+                             BRNE                 stwT                            ;if we aren't LDW try STW
+                             STRO                 ldwmsg,d                          ;else output LDW
+                             MOVSPA                                               ;now we calculate our address and reg values
+                             ADDA                 6,i                             ;make sure we are pointing at the right value
+                             SUBSP                2,i                             ;push #addre
+                             STWA                 0,s                             ;put the value in its place
+                             LDWA                 0,i                             ;clear accumulator 
+                             MOVSPA                                               ;now we calculate our address and reg values
+                             ADDA                 9,i                             ;make sure we are pointing at the right value
+                             SUBSP                2,i                             ;push #regist
+                             STWA                 0,s                             ;put the value in its place
+                             LDWA                 0,i                             ;clear accumulator 
+                             CALL                 address                         ;get the address value
+                             ADDSP                4,i                             ;pop the #regist #addre
+                             MOVSPA                                               ;prep to get the register value
+                             ADDA                 6,i                             ;get the address we will be using
+                             SUBSP                2,i                             ;push #reg
+                             STWA                 0,s                             ;store our new address on the stack
+                             LDWA                 0,i                             ;clear the accumulator
+                             CALL                 register                        ;call our register function to get our register
+                             ADDSP                2,i                             ;pop #reg
+                             BR                   doneDis                         ;then we return.
+stwT:                        CPBA                 14,i                            ;compare our value to STW
+                             BRNE                 brokeDis                            ;if we aren't STW We are broken
+                             STRO                 stwmsg,d                          ;else output STW
+                             MOVSPA                                               ;now we calculate our address and reg values
+                             ADDA                 6,i                             ;make sure we are pointing at the right value
+                             SUBSP                2,i                             ;push #addre
+                             STWA                 0,s                             ;put the value in its place
+                             LDWA                 0,i                             ;clear accumulator 
+                             MOVSPA                                               ;now we calculate our address and reg values
+                             ADDA                 9,i                             ;make sure we are pointing at the right value
+                             SUBSP                2,i                             ;push #regist
+                             STWA                 0,s                             ;put the value in its place
+                             LDWA                 0,i                             ;clear accumulator
+                             CALL                 address                         ;get the address value
+                             ADDSP                4,i                             ;pop the #regist #addre
+                             LDBA                 4,sf                            ;get our address value
+                             CPBA                 0,i                             ;compare it to immediate value
+                             BREQ                 brokeDis                        ;if we are immediate then the code is broken. 
+                             MOVSPA                                               ;prep to get the register value
+                             ADDA                 6,i                             ;get the address we will be using
+                             SUBSP                2,i                             ;push #reg
+                             STWA                 0,s                             ;store our new address on the stack
+                             LDWA                 0,i                             ;clear the accumulator
+                             CALL                 register                        ;call our register function to get our register
+                             ADDSP                2,i                             ;pop #reg
+                             BR                   doneDis                         ;then we return.
+brokeDis:                    STRO                 err2,d                          ;let the user know what went wrong
+                             STOP                                                 ;terminate
+doneDis:                     RET                                                  ;else return
+
+                             ;toDec(*nibble)
+d:                           .EQUATE              0                               ;formal pramater stack deferred #2h
+toDec:                       LDBA                 2,sf                            ;load the value we were passed
+                             CPBA                 48,i                            ;compare it to 0
+                             BRLT                 broken                          ;if we are less than 0 we are broken code
+                             CPBA                 57,i                            ;compare to 9
+                             BRGT                 A                               ;if we are greater than 9 check against A
+                             SUBA                 48,i                            ;else we subtract 48 from our answer to get our decimal value between 0-9
+                             BR                   doneDec                         ;then we finish and return
+A:                           CPBA                 65,i                            ;compare to A
+                             BRLT                 broken                          ;if we are less than A but greater than 9 we are invalid
+                             CPBA                 70,i                            ;compare to F
+                             BRGT                 a                               ;if we are greater than F check a
+                             SUBA                 65,i                            ;else subtract 65 to get our value 
+                             ADDA                 10,i                            ;add 10 to get our value between A and F
+                             BR                   doneDec                         ;and we finish our process
+a:                           CPBA                 97,i                            ;compare with a
+                             BRLT                 broken                          ;if we are greater than F and less than a we are not valid
+                             CPBA                 102,i                           ;compare to f
+                             BRGT                 broken                          ;if we are greater than f we are invalid
+                             SUBA                 97,i                            ;else we subtract 97 to get the decimal value
+                             ADDA                 10,i                            ;then add 10 to our value to get our value between A and F
+                             BR                   doneDec                         ;then we are finished
+broken:                      STRO                 err1,d                          ;tell the user why their code was invalid
+                             STOP                                                 ;terminate program
+doneDec:                     STBA                 2,sf                            ;store our value into the stack deferred value
+                             RET 
+
+                             ;outputOperand()
+cntr:                        .EQUATE              0                               ;local variable #1d
+operand:                     LDBA                 4,i                             ;we are making a for loop
+                             SUBSP                1,i                             ;push #cntr
+                             STBA                 0,s                             ;add cntr
+                             LDBA                 ' ',i                           ;print space
+                             STBA                 charOut,d
+                             LDBA                 '0',i                           ;output 0
+                             STBA                 charOut,d
+                             LDBA                 'x',i                           ;output x
+                             STBA                 charOut,d
+for:                         LDBA                 0xFC15,d                        ;get the value
+                             CPBA                 32,i                            ;compare it to a space
+                             BREQ                 for                             ;if it is a space go back to for
+                             CPBA                 48,i                            ;see if the value is between 0
+                             BRLT                 brokeOp                         ;if it is less than 0 its broken
+                             CPBA                 57,i                            ;if it is greater than 9 go to A
+                             BRGT                 Aop                             
+                             STBA                 charOut,d                       ;else output the value
+                             BR                   finTest                         ;then see if we are done
+Aop:                         CPBA                 65,i                            ;if we are greater than 9 and less than A
+                             BRLT                 brokeOp                         ;we break
+                             CPBA                 70,i                            ;else if we are greater than F
+                             BRGT                 aop                             ;check a
+                             STBA                 charOut,d                       ;else print our code
+                             BR                   finTest
+aop:                         CPBA                 97,i                            ;less than a? 
+                             BRLT                 brokeOp                         ;then our code is broken
+                             CPBA                 102,i                           ;greater than f?
+                             BRGT                 brokeOp                         ;code is broken
+                             STBA                 charOut,d                       ;else our code is valid
+                             BR                   finTest
+finTest:                     LDBA                 0,s                             ;get our local variable
+                             SUBA                 1,i                             ;subtract one
+                             CPBA                 0,i                             ;compare the result to 1
+                             BRLE                 doneOp
+                             STBA                 0,s                             ;else store the new value on the stack
+                             BR                   for
+brokeOp:                     STRO                 err1,d                          ;tell the user their code is not HEX
+                             STOP
+doneOp:                      ADDSP                1,i                             ;pop #cntr
+                             RET 
+                             
+                             
+
+                             ;readNibble(*nibble)
+n:                           .EQUATE              0                               ;formal parameter stack deferred #2h
+readNib:                     LDBA                 0xFC15,d                        ;get first element of user input
+compRN:                      CPBA                 32,i                            ;check to see if it is whitespace
+                             BRNE                 valid                           ;if it is not a space we consider it valid
+                             LDBA                 0xFC15,d                        ;if we are invalid we get the next value and go back to compare again. 
+valid:                       STBA                 2,sf                            ;store it at the address of the stack pointer n
+                             RET                                                  ;store our value and return
+
+                             ;input()
+regAdd:                      .EQUATE              1                               ;local variable holds the nibble for reg address #1d
+instr:                       .EQUATE              0                               ;local variable holds the niblle for the instruction #1d
+input:                       SUBSP                2,i                             ;push #instr #regAdd
+                             STRO                 msg3,d                          ;prompt user to enter HEX code
+whileI:                      MOVSPA                                               ;move the value of the stack pointer into the accumulator
+                             ADDA                 1,i                             ;add the value of instr which is 0 to the stack pointer
+                             SUBSP                2,i                             ;push #n 
+                             STWA                 0,s                             ;push the value of the return address onto the stack
+                             CALL                 readNib
+                             ADDSP                2,i                             ;pop #n
+                             LDWA                 0,i                             ;clear accumulator
+                             LDBA                 1,s                             ;get the value we just tested
+                             CPBA                 10,i                            ;if it is a line feed we quit
+                             BREQ                 doneI
+                             SUBSP                2,i                             ;push #d 
+                             CALL                 toDec                           ;convert instr into a decimal value
+                             ADDSP                2,i                             ;pop #d 
+                             MOVSPA
+                             SUBSP                2,i                             ;push #n 
+                             STWA                 0,s                             ;push the value of the return address onto the stack
+                             LDWA                 0,i                             ;clear the accumulator.
+                             CALL                 readNib
+                             ADDSP                2,i                             ;pop #n 
+                             LDWA                 0,i                             ;clear accumulator
+                             LDBA                 0,s                             ;get the value we just tested
+                             CPBA                 10,i                            ;if it is a line feed we quit
+                             BREQ                 doneI
+                             SUBSP                2,i                             ;push #d 
+                             CALL                 toDec                           ;convert instr into a decimal value
+                             ADDSP                2,i                             ;pop #d
+                             MOVSPA                                               ;prep the stack again for another push
+                             ADDA                 1,i                             ;get ready to push
+                             SUBSP                2,i                             ;push #regi
+                             STWA                 0,s                             ;put in value
+                             MOVSPA               
+                             ADDA                 2,i                             ;make room                                
+                             SUBSP                2,i                             ;push #addr 
+                             STWA                 0,s                             ;put in the value
+                             LDWA                 0,i                             ;clear accumulator
+                             CALL                 dis                             ;get our instructions and reg addr values 
+                             ADDSP                4,i                             ;pop #addr #reg
+                             LDBA                 1,s                             ;get our address value
+                             CPBA                 8,i                             ;if the address value is 8 then we skip to finished process.
+                             BREQ                 finishPr                        ;go to the final step
+                             LDBA                 0,s                             ;otherwise we look at our register
+                             CPBA                 0,i                             ;if the value is zero then we skip to operand
+                             BREQ                 operandT                        
+                             CPBA                 1,i                             ;else we print A
+                             BRNE                 xTest                           ;or we go to xTest if we are not in the A register
+                             LDBA                 'A',i                           ;load A
+                             STBA                 charOut,d                       ;store it on the output
+                             BR                   operandT
+xTest:                       CPBA                 2,i                             ;else we check for register X
+                             BRNE                 brokenI                         ;if we don't have one of these two our code is broken
+                             LDBA                 'X',i                           ;load X
+                             STBA                 charOut,d                       ;printX
+operandT:                    CALL                 operand                         ;print out the operand
+                             LDBA                 ',',i
+                             STBA                 charOut,d
+                             LDBA                 1,s                             ;load the address
+                             CPBA                 0,i                             ;see if our addressing mode is i
+                             BRNE                 dire                            ;if not go to direct
+                             LDBA                 'i',i                           ;print a
+                             STBA                 charOut,d
+                             BR                   finishPr
+dire:                        CPBA                 1,i                             ;see if our addressing mode is d
+                             BRNE                 nA                              ;if not go to n
+                             LDBA                 'd',i                           ;print d
+                             STBA                 charOut,d
+                             BR                   finishPr
+nA:                          CPBA                 2,i                             ;see if our addressing mode is n
+                             BRNE                 s                               ;if not go to stack
+                             LDBA                 'n',i                           ;print n
+                             STBA                 charOut,d
+                             BR                   finishPr
+s:                           CPBA                 3,i                             ;see if our addressing mode is s
+                             BRNE                 sf                             ;if not go to stack deferred
+                             LDBA                 's',i                           ;print s
+                             STBA                 charOut,d
+                             BR                   finishPr
+sf:                          CPBA                 4,i                             ;see if our addressing mode is sf
+                             BRNE                 x                               ;if not go to x
+                             LDBA                 's',i                           ;print s
+                             STBA                 charOut,d
+                             LDBA                 'f',i                           ;print f
+                             STBA                 charOut,d
+                             BR                   finishPr
+x:                           CPBA                 5,i                             ;see if our addressing mode is x
+                             BRNE                 sx                              ;if not go to stack x
+                             LDBA                 'x',i                           ;print x
+                             STBA                 charOut,d
+                             BR                   finishPr
+sx:                          CPBA                 6,i                             ;see if our addressing mode is sx
+                             BRNE                 sfx                             ;if not go to sfx 
+                             LDBA                 's',i                           ;print s
+                             STBA                 charOut,d
+                             LDBA                 'x',i                           ;print x
+                             STBA                 charOut,d
+                             BR                   finishPr
+sfx:                         CPBA                 7,i                             ;see if our addressing mode is sfx 
+                             BRNE                 brokenI                             ;if not go to stack deferred
+                             LDBA                 's',i                           ;print s
+                             STBA                 charOut,d
+                             LDBA                 'f',i                           ;print f
+                             STBA                 charOut,d
+                             LDBA                 'x',i                           ;print x
+                             STBA                 charOut,d
+finishPr:                    LDBA                 '\n',i                          ;load new line
+                             STBA                 charOut,d                       ;output new line
+                             BR                   whileI
+brokenI:                     STRO                 err2,d                          ;let the user know what broke
+                             STOP
+doneI:                       ADDSP                2,i                             ;pop #regAdd #instr
+                             RET
+                             
+                             
+
+                             ;main()
+main:                        STRO                 msg1,d                          ;Say hello to the user
+whileM:                      CALL                 charCh                          ;call charCh which is in charge of quitting the program 
+                             CALL                 input                           ;call input which is in charge of outputting the code
+                             BR                   whileM                          ;loop back and check to see if the user quits.
+                             STOP
+msg1:                        .ASCII               "Welcome to the disassembler.\n\x00"
+msg2:                        .ASCII               "\nPress Q to quit. Press any key to continue.\n\x00"
+msg3:                        .ASCII               "Enter your HEX code below.\n\x00"
+err1:                        .ASCII               "Function entered not a HEX value. Terminating.\n\x00"
+err2:                        .ASCII               "\nUnsupported Instruction, or an invalid register or address value. Terminating.\n\x00"
+stopmsg:                     .ASCII               "STOP\x00"
+notAmsg:                     .ASCII               "NOTA\x00"
+notXmsg:                     .ASCII               "NOTX\x00"
+breqmsg:                     .ASCII               "BREQ\x00"
+callmsg:                     .ASCII               "CALL\x00"
+decimsg:                     .ASCII               "DECI\x00"
+hexomsg:                     .ASCII               "HEXO\x00"
+addspmsg:                    .ASCII               "ADDSP\x00"
+submsg:                      .ASCII               "SUB\x00"
+ldwmsg:                      .ASCII               "LDW\x00"
+stwmsg:                      .ASCII               "STW\x00"
+                             .END
